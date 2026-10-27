@@ -3,6 +3,8 @@ import '@fontsource/fredoka/400.css';
 import '@fontsource/fredoka/600.css';
 import '@fontsource/caveat/400.css';
 import './styles/base.css';
+import './styles/gift.css';
+import './styles/cake.css';
 import { importKey, keepKey, loadPack, readKey } from './crypto';
 import type { App, Content, MediaData, Pack } from './types';
 import { gift } from './screens/gift';
@@ -16,7 +18,19 @@ function show(el: HTMLElement) {
   for (const s of document.querySelectorAll<HTMLElement>('.scene')) s.hidden = s !== el;
 }
 
+// Bildschirm bleibt während der Show an; nach dem Zurückkehren in den Tab neu anfordern
+let wakeLock: WakeLockSentinel | null = null;
+async function stayAwake() {
+  if (document.visibilityState !== 'visible' || (wakeLock && !wakeLock.released)) return;
+  try {
+    wakeLock = (await navigator.wakeLock?.request('screen')) ?? null;
+  } catch {}
+}
+
 function start(core: Pack<Content>, media: Promise<Pack<MediaData>>) {
+  document.addEventListener('pointerdown', stayAwake);
+  document.addEventListener('visibilitychange', stayAwake);
+
   let current = 0;
   const app: App = {
     content: core.data,

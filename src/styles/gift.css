@@ -1,0 +1,67 @@
+#s-gift {
+  cursor: pointer;
+  user-select: none;
+}
+
+.gift {
+  width: min(60vw, 240px);
+  overflow: visible;
+  transform-origin: 50% 90%;
+  animation: wobble 2.6s ease-in-out infinite;
+}
+
+#s-gift.open .gift {
+  animation: none;
+}
+
+.gift .box {
+  fill: var(--accent);
+}
+
+.gift .lid {
+  fill: #c94a33;
+}
+
+.gift .ribbon {
+  fill: var(--petrol);
+}
+
+.gift .bow {
+  fill: none;
+  stroke: var(--petrol);
+  stroke-width: 7;
+}
+
+.gift-lid,
+.gift-box {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+#s-gift .hint {
+  margin: 0;
+  opacity: 0.7;
+}
+
+@keyframes wobble {
+  0%,
+  60%,
+  100% {
+    rotate: 0deg;
+  }
+  70% {
+    rotate: -5deg;
+  }
+  80% {
+    rotate: 5deg;
+  }
+  90% {
+    rotate: -3deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift {
+    animation: none;
+  }
+}
