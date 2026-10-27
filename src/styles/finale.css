@@ -1,0 +1,35 @@
+/* Objekt-Ebene über der Karte */
+#s-card .layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+#s-card .layer[hidden] {
+  display: none;
+}
+
+#s-card.covered .again {
+  visibility: hidden;
+}
+
+#s-card .tidy {
+  position: absolute;
+  bottom: 28px;
+  z-index: 3;
+  box-shadow: 0 6px 18px rgb(46 36 32 / 0.3);
+  animation: rise 0.4s ease-out;
+}
+
+/* Konfetti über allem */
+.confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

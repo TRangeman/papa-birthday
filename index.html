@@ -101,18 +101,8 @@
         <div class="term" aria-live="polite"></div>
       </section>
 
-      <section id="s-burst" class="scene" hidden>
-        <p class="stub">Screen 4 · Explosion</p>
-        <button class="btn">Weiter</button>
-      </section>
-
-      <section id="s-finale" class="scene" hidden>
-        <p class="stub">Screen 5 · Finale</p>
-        <button class="btn">Aufräumen 🧹</button>
-      </section>
-
+      <!-- Screen 4 (Explosion) läuft auf dem Generator, Screen 5 (Finale) als Ebene über der Karte -->
       <section id="s-card" class="scene" hidden>
-        <p class="stub">Screen 6 · Karte</p>
         <article class="card">
           <h2 data-c="head"></h2>
           <p data-c="title"></p>
@@ -123,6 +113,8 @@
           <p class="fine" data-c="fine"></p>
         </article>
         <button class="btn btn-2 again">↻ Nochmal von vorn</button>
+        <canvas class="layer" hidden></canvas>
+        <button class="btn tidy" hidden>🧹 Aufräumen</button>
       </section>
     </main>
     <script type="module" src="/src/main.ts"></script>
