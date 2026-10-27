@@ -26,5 +26,10 @@
     "wa": "49XXXXXXXXXX",
     "text": "<vorgefertigte Nachricht>"
   },
-  "item": { "color": "#CCCCCC", "seam": "#FFFFFF", "count": 25 }
+  "item": { "color": "#CCCCCC", "seam": "#FFFFFF", "count": 25 },
+  "audio": {
+    "_note": "Optional: Ausschnitt aus private/audio/birthday.mp3 (cake) und sixtyfour.mp3 (gen). Ohne durationSec bleibt die Datei ungekürzt",
+    "cake": { "startSec": 0, "durationSec": 25 },
+    "gen": { "startSec": 0, "durationSec": 24 }
+  }
 }

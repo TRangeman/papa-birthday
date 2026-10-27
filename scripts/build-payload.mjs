@@ -1,11 +1,16 @@
 // Verarbeitet private/ zu den verschlüsselten Paketen public/core.bin + public/media.bin
 // und gibt Link + QR-Code (SVG, PNG) nach private/out/ aus.
+import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import ffmpegPath from 'ffmpeg-static';
 import sharp from 'sharp';
 import QRCode from 'qrcode';
+
+const run = promisify(execFile);
 
 const SITE = 'https://trangeman.github.io/papa-birthday/';
 const DEV = 'http://localhost:5173/papa-birthday/';
@@ -73,6 +78,35 @@ const sorted = (names) => names.sort((a, b) => a.localeCompare(b, 'de', { numeri
 const toWebp = (file) =>
   sharp(file).rotate().resize(1080, 1080, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 75 }).toBuffer();
 
+// Mit startSec/durationSec aus content.json: Ausschnitt per ffmpeg, kurze Fades, 128 kbit/s, ohne Cover und Tags.
+// Ohne Angaben wird die Datei unverändert übernommen.
+async function audioFile(name, file, cut) {
+  if (!existsSync(file)) return null;
+  if (!cut?.durationSec) return { name, type: 'audio/mpeg', buf: await readFile(file) };
+  const start = cut.startSec ?? 0;
+  const dur = cut.durationSec;
+  const fadeIn = start > 0 ? 0.5 : 0.05;
+  const fadeOut = Math.min(1.5, dur / 4);
+  const { stdout } = await run(
+    ffmpegPath,
+    [
+      '-v', 'error',
+      '-ss', String(start),
+      '-t', String(dur),
+      '-i', file,
+      '-vn',
+      '-map_metadata', '-1',
+      '-af', `afade=t=in:d=${fadeIn},afade=t=out:st=${dur - fadeOut}:d=${fadeOut}`,
+      '-c:a', 'libmp3lame',
+      '-b:a', '128k',
+      '-f', 'mp3',
+      'pipe:1',
+    ],
+    { encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 },
+  );
+  return { name, type: 'audio/mpeg', buf: stdout, cut: `${start}–${start + dur} s` };
+}
+
 async function optionalFile(name, ...candidates) {
   for (const [file, type] of candidates) {
     if (existsSync(file)) return { name, type, buf: await readFile(file) };
@@ -103,17 +137,21 @@ async function encrypt(plain, keyB64) {
 }
 
 const kb = (n) => `${(n / 1024).toFixed(0)} KB`;
+const songInfo = (f, fallback) =>
+  f ? `Datei, ${f.cut ? `Ausschnitt ${f.cut}` : 'ungekürzt'}, ${kb(f.buf.length)}` : `fehlt → ${fallback}`;
 
 async function main() {
   await mkdir(out, { recursive: true });
   await mkdir(pub, { recursive: true });
 
   const key = await loadKey();
-  const content = await loadContent();
+  // Schnittangaben werden nur hier gebraucht und landen nicht im Paket
+  const { audio: cuts = {}, ...content } = await loadContent();
 
-  // core.bin: Texte, Unterschrift, Happy Birthday
+  // core.bin: Texte, Unterschrift, Kuchen-Song
+  const cakeSong = await audioFile('a1', P('audio', 'birthday.mp3'), cuts.cake);
   const coreFiles = [
-    await optionalFile('a1', [P('audio', 'birthday.mp3'), 'audio/mpeg']),
+    cakeSong,
     await optionalFile('sig', [P('signature.svg'), 'image/svg+xml'], [P('signature.png'), 'image/png']),
   ].filter(Boolean);
 
@@ -123,8 +161,12 @@ async function main() {
   for (const [i, file] of photos.entries()) {
     mediaFiles.push({ name: `p${i}`, type: 'image/webp', buf: await toWebp(file) });
   }
-  const song = await optionalFile('a2', [P('audio', 'sixtyfour.mp3'), 'audio/mpeg']);
+  const song = await audioFile('a2', P('audio', 'sixtyfour.mp3'), cuts.gen);
   if (song) mediaFiles.push(song);
+
+  // Ausschnitte zum Reinhören, ohne die App starten zu müssen
+  if (cakeSong?.cut) await writeFile(path.join(out, 'clip-cake.mp3'), cakeSong.buf);
+  if (song?.cut) await writeFile(path.join(out, 'clip-gen.mp3'), song.buf);
 
   const core = await encrypt(pack(content, coreFiles), key);
   const media = await encrypt(pack({ photos: mediaFiles.filter((f) => f.name.startsWith('p')).map((f) => f.name) }, mediaFiles), key);
@@ -140,7 +182,8 @@ async function main() {
   console.log(`
 core.bin   ${kb(core.length)}  (${coreFiles.map((f) => f.name).join(', ') || 'nur Texte'})
 media.bin  ${kb(media.length)}  (${photos.length} Fotos${song ? ' + Song' : ', ohne Song'})
-Happy Birthday: ${coreFiles.some((f) => f.name === 'a1') ? 'Datei' : 'fehlt → Spieluhr'}
+Kuchen-Song:    ${songInfo(cakeSong, 'Spieluhr')}
+Generator-Song: ${songInfo(song, 'Ticks')}
 Unterschrift:   ${coreFiles.some((f) => f.name === 'sig') ? 'Datei' : 'fehlt → Handschrift-Font'}
 
 Link:   ${link}

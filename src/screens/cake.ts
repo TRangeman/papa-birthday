@@ -1,4 +1,5 @@
-// Screen 2: Kuchen mit Kerze. Happy Birthday startet sofort, danach Pusten (Mikrofon) oder Tippen/Wischen.
+// Screen 2: Kuchen mit Kerze. Der Song startet sofort, der Puste-Hinweis kommt währenddessen.
+// Er läuft weiter, bis das Mikrofon zuhört oder die Kerze per Tippen/Wischen ausgeht.
 import { decode, play, type Track } from '../audio/player';
 import { renderMusicbox } from '../audio/musicbox';
 import { puff } from '../audio/sfx';
@@ -6,6 +7,7 @@ import { listen, micSupported } from '../audio/mic';
 import type { App, Scene } from '../types';
 
 const DEBUG = new URLSearchParams(location.search).has('debug');
+const WISH_AFTER_MS = 10000;
 const HINT_AFTER_MS = 8000;
 const HIT_PAD = 36; // Trefferfläche um Kerze und Flamme, in px
 
@@ -48,7 +50,7 @@ export function cake(app: App): Scene {
   $('.title').textContent = app.content.cake.title;
   floaties($('.floaties'));
 
-  // Happy Birthday schon beim Start vorbereiten: MP3 aus core.bin, sonst Spieluhr
+  // Song schon beim Start vorbereiten: MP3 aus core.bin, sonst Spieluhr
   const songBuffer = (app.core.has('a1') ? decode(app.core.url('a1')!) : Promise.reject()).catch(renderMusicbox);
 
   let state: State = 'song';
@@ -59,6 +61,7 @@ export function cake(app: App): Scene {
   const later = (ms: number, fn: () => void) => timers.push(window.setTimeout(fn, ms));
 
   function showWish() {
+    if (state !== 'song') return;
     state = 'wish';
     wish.hidden = false;
     micBtn.hidden = !micSupported();
@@ -140,6 +143,7 @@ export function cake(app: App): Scene {
   micBtn.onclick = async () => {
     const myRun = run;
     micBtn.disabled = true;
+    song?.stop(0.4); // sonst hört das Mikrofon die Musik
     try {
       const stop = await listen(
         (l) => {
@@ -189,11 +193,13 @@ export function cake(app: App): Scene {
     enter() {
       reset();
       const myRun = run;
+      later(WISH_AFTER_MS, showWish);
       songBuffer.then((buffer) => {
-        if (myRun !== run || state !== 'song') return;
+        if (myRun !== run || state === 'out') return;
         song = play(buffer);
+        // Falls der Song kürzer ist als die Wartezeit
         song.ended.then(() => {
-          if (myRun === run && state === 'song') showWish();
+          if (myRun === run) showWish();
         });
       });
     },
