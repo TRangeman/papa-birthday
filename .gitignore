@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.local
+
+# Private Inhalte: Fotos, Audio, Unterschrift, content.json, Schlüssel, QR-Code
+/private/*
+!/private/content.example.json
+
+# Verschlüsselte Pakete werden bei jedem Build neu erzeugt und nur über gh-pages ausgeliefert
+/public/*.bin
+
+# Das Konzept verrät das Geschenk
+/docs/
+
+/.claude/
