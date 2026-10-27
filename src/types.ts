@@ -20,6 +20,9 @@ export interface Content {
   };
   contact: { wa: string; text: string };
   item: { color: string; seam: string; count: number };
+  // vom Build-Skript ergänzt: Bereich der Unterschrift im Bild [links, oben, Breite, Höhe] und Seitenverhältnis
+  sigBox?: [number, number, number, number];
+  sigRatio?: number;
 }
 
 // Inhalt von media.bin

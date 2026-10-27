@@ -20,6 +20,19 @@ export function audio(): AudioContext {
   return ctx;
 }
 
+// Verlässt man den Browser, pausiert aller Ton; beim Zurückkommen läuft er an derselben Stelle weiter
+let pausedByHide = false;
+document.addEventListener('visibilitychange', () => {
+  if (!ctx) return;
+  if (document.hidden) {
+    pausedByHide = ctx.state === 'running';
+    ctx.suspend();
+  } else if (pausedByHide) {
+    pausedByHide = false;
+    ctx.resume();
+  }
+});
+
 // Muss direkt in einem Tipp-Handler laufen, sonst bleibt der Ton gesperrt
 export function unlock() {
   audio().resume();

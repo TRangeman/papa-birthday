@@ -45,10 +45,23 @@ export function card(app: App): Scene {
   const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
   el.querySelector<HTMLElement>('.code')!.style.background = barcode(c.serial, ink);
 
-  // Unterschrift: Datei aus core.bin, sonst Handschrift-Font
-  const sign = el.querySelector('.sign')!;
+  // Unterschrift: Datei aus core.bin, sonst Handschrift-Font.
+  // Bei einem gemessenen Schriftbereich (sigBox) wird nur dieser Ausschnitt gezeigt, das Bild bleibt unverändert.
+  const sign = el.querySelector<HTMLElement>('.sign')!;
   const src = app.core.url('sig');
-  sign.replaceChildren(src ? Object.assign(new Image(), { src, alt: app.content.from }) : `— ${app.content.from}`);
+  const { sigBox, sigRatio } = app.content;
+  if (src && sigBox && sigRatio) {
+    const [x, y, bw, bh] = sigBox;
+    const img = Object.assign(new Image(), { src, alt: app.content.from });
+    img.style.cssText = `width:${100 / bw}%;left:${(-x / bw) * 100}%;top:${(-y / bh) * 100}%`;
+    const crop = document.createElement('div');
+    crop.className = 'sign-crop';
+    crop.style.aspectRatio = String((bw * sigRatio) / bh);
+    crop.append(img);
+    sign.replaceChildren(crop);
+  } else {
+    sign.replaceChildren(src ? Object.assign(new Image(), { src, alt: app.content.from }) : `— ${app.content.from}`);
+  }
 
   // WhatsApp: Nummer (international, ohne +) oder wa.me-Link. Direkt über api.whatsapp.com,
   // weil die Weiterleitung von wa.me Emojis im Text kaputt macht.

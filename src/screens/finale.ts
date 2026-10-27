@@ -30,7 +30,7 @@ const DROP_MS = 380; // Fall-Animation in den Korb
 const WOBBLE_MS = 600;
 const DONE_FADE_MS = 450; // Korb blendet aus, wenn alles drin ist
 const BUMP_GAP_MS = 60;
-const PEEK_SLOTS = [0, -0.28, 0.28, -0.14, 0.14, -0.38, 0.38]; // Objekte, die oben aus dem Korb gucken
+const IN_BASKET = 0.55; // Größe im Korb relativ zur normalen Größe
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Kollisionsgruppen
@@ -48,6 +48,13 @@ interface Drop {
   y: number;
   angle: number;
   at: number;
+  slot: number;
+}
+
+interface Slot {
+  x: number;
+  y: number;
+  angle: number;
 }
 
 // Einmal vorzeichnen, pro Frame nur noch kopieren: Grundkörper (dreht sich mit),
@@ -138,6 +145,7 @@ export function finale(app: App): Scene {
   let engine: Matter.Engine | undefined;
   let items: Item[] = [];
   let drops: Drop[] = [];
+  let slots: Slot[] = [];
   let finger: Matter.Body | undefined;
   let art: ReturnType<typeof sprites>;
   let w = 0;
@@ -177,6 +185,29 @@ export function finale(app: App): Scene {
     drops = [];
   }
 
+  // Plätze im Korb: von unten nach oben in versetzten Reihen, ist er voll, wächst oben ein Haufen
+  function basketSlots(n: number) {
+    const rr = r * IN_BASKET;
+    const out: Slot[] = [];
+    let y = rimY + bh - rr * 1.1;
+    for (let row = 0; out.length < n; row++) {
+      const depth = Math.min(1, Math.max(0, (y - rimY) / bh)); // 0 am Rand, 1 am Boden
+      let halfW = (bw / 2) * (1 - 0.18 * depth) - rr;
+      if (y < rimY) halfW -= (rimY - y) * 0.9; // Haufen über dem Rand wird schmaler
+      const cols = Math.max(1, Math.floor((2 * halfW) / (rr * 1.6)) + 1);
+      const step = cols > 1 ? (2 * halfW) / (cols - 1) : 0;
+      for (let i = 0; i < cols && out.length < n; i++) {
+        out.push({
+          x: bx + (cols > 1 ? -halfW + i * step : 0) + (row % 2 ? step / 4 : -step / 4) + (Math.random() - 0.5) * 4,
+          y: y + (Math.random() - 0.5) * 4,
+          angle: Math.random() * Math.PI * 2,
+        });
+      }
+      y -= rr * 1.4;
+    }
+    return out;
+  }
+
   function launch() {
     w = el.clientWidth;
     h = el.clientHeight;
@@ -191,6 +222,7 @@ export function finale(app: App): Scene {
     bh = bw * 0.62;
     bx = w / 2;
     rimY = h - 26 - bh;
+    slots = basketSlots(Math.min(count, MAX_COUNT));
 
     engine = Engine.create({ gravity: { x: 0, y: 0 }, enableSleeping: true });
     const wallOpts = { isStatic: true, collisionFilter: { category: WALLS } };
@@ -272,25 +304,33 @@ export function finale(app: App): Scene {
     ctx.rotate(wobble);
     ctx.translate(-bx, -bottom);
 
-    // Innenraum
+    // Innenraum: Öffnung und Rückwand
     ctx.fillStyle = 'rgba(31,95,107,0.35)';
     ctx.beginPath();
     ctx.ellipse(bx, rimY, half, ry, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = 'rgba(31,95,107,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(bx - half, rimY);
+    ctx.lineTo(bx - footHalf, bottom);
+    ctx.lineTo(bx + footHalf, bottom);
+    ctx.lineTo(bx + half, rimY);
+    ctx.fill();
 
-    // Gefangene gucken oben heraus, je voller, desto höher
+    // Gefangene liegen auf ihren Plätzen im Korb
     const total = caught + items.length;
-    const fill = total ? caught / total : 0;
-    const shown = Math.min(caught, PEEK_SLOTS.length);
-    for (let i = 0; i < shown; i++) {
-      drawItem(bx + PEEK_SLOTS[i] * bw, rimY + ry * 0.2 - fill * r * 0.5 - (i % 2) * 3, i * 1.7, r * 0.72);
+    const falling = new Set(drops.map((d) => d.slot));
+    for (let i = 0; i < caught; i++) {
+      if (!falling.has(i)) drawItem(slots[i].x, slots[i].y, slots[i].angle, r * IN_BASKET);
     }
 
-    // Was gerade hineinfällt: zur Korbmitte, schrumpft und sinkt hinter die Vorderseite
+    // Was gerade hineinfällt: in einem kleinen Bogen auf seinen Platz, dabei schrumpfen
     for (const d of drops) {
       const k = Math.min(1, (now - d.at) / DROP_MS);
       const e = k * k;
-      drawItem(d.x + (bx - d.x) * e, d.y + (rimY + ry - d.y) * e + e * r * 0.8, d.angle + k * 2, r * (1 - 0.3 * k));
+      const s = slots[d.slot];
+      const arc = Math.sin(k * Math.PI) * r * 0.6;
+      drawItem(d.x + (s.x - d.x) * e, d.y + (s.y - d.y) * e - arc, d.angle + (s.angle - d.angle) * e, r * (1 - (1 - IN_BASKET) * k));
     }
 
     // Vorderseite: halbdurchsichtiger Korbkörper mit Drahtgitter
@@ -417,7 +457,7 @@ export function finale(app: App): Scene {
 
   function catchItem(it: Item, now: number) {
     Composite.remove(engine!.world, it.body);
-    drops.push({ x: it.body.position.x, y: it.body.position.y, angle: it.body.angle, at: now });
+    drops.push({ x: it.body.position.x, y: it.body.position.y, angle: it.body.angle, at: now, slot: caught });
     caught++;
     wobbleAt = now;
     plopp(0.5);

@@ -154,10 +154,19 @@ async function main() {
 
   // core.bin: Texte, Unterschrift, Kuchen-Song
   const cakeSong = await audioFile('a1', P('audio', 'birthday.mp3'), cuts.cake);
-  const coreFiles = [
-    cakeSong,
-    await optionalFile('sig', [P('signature.svg'), 'image/svg+xml'], [P('signature.png'), 'image/png']),
-  ].filter(Boolean);
+  const sig = await optionalFile('sig', [P('signature.svg'), 'image/svg+xml'], [P('signature.png'), 'image/png']);
+  const coreFiles = [cakeSong, sig].filter(Boolean);
+
+  // Unterschrift bleibt unverändert; nur der Bereich, in dem die Schrift steht, wird gemessen,
+  // damit das Ticket genau diesen Ausschnitt zeigen kann: [links, oben, Breite, Höhe] als Anteil
+  if (sig?.type === 'image/png') {
+    const { width, height } = await sharp(sig.buf).metadata();
+    const { info } = await sharp(sig.buf).trim().toBuffer({ resolveWithObject: true });
+    content.sigBox = [-info.trimOffsetLeft / width, -info.trimOffsetTop / height, info.width / width, info.height / height].map(
+      (v) => Math.round(v * 1000) / 1000,
+    );
+    content.sigRatio = width / height;
+  }
 
   // media.bin: Fotos, Generator-Musik
   const photos = await photoFiles();
