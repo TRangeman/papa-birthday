@@ -44,7 +44,6 @@ export function cake(app: App): Scene {
   const wishText = $<HTMLElement>('.wish-text');
   const wishHint = $<HTMLElement>('.wish-hint');
   const micBtn = $<HTMLButtonElement>('.mic-btn');
-  const party = $<HTMLElement>('.party');
   const debug = $<HTMLElement>('.mic-debug');
 
   $('.title').textContent = app.content.cake.title;
@@ -121,14 +120,6 @@ export function cake(app: App): Scene {
     navigator.vibrate?.(80);
     wish.hidden = true;
     debug.hidden = true;
-
-    later(700, () => {
-      party.hidden = false;
-      party.animate([{ transform: 'scale(0)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], {
-        duration: 500,
-        easing: 'ease-out',
-      });
-    });
     later(2200, app.next);
   }
 
@@ -176,7 +167,7 @@ export function cake(app: App): Scene {
     stopMic = undefined;
     for (const t of timers) clearTimeout(t);
     timers = [];
-    for (const a of [...tilt.getAnimations(), ...glow.getAnimations(), ...party.getAnimations()]) a.cancel();
+    for (const a of [...tilt.getAnimations(), ...glow.getAnimations()]) a.cancel();
     tilt.style.transform = '';
     smoke.replaceChildren();
     wish.hidden = true;
@@ -184,7 +175,6 @@ export function cake(app: App): Scene {
     wishHint.textContent = TEXT.hint;
     wishHint.classList.remove('strong');
     micBtn.disabled = false;
-    party.hidden = true;
     debug.hidden = true;
   }
 

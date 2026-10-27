@@ -163,13 +163,6 @@
   opacity: 0.6;
 }
 
-.party {
-  position: absolute;
-  bottom: 18%;
-  margin: 0;
-  font-size: 4rem;
-}
-
 .mic-debug {
   position: fixed;
   left: 8px;
