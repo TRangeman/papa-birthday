@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#F3D9C4" />
+    <meta name="robots" content="noindex" />
+    <title>🎂</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>" />
+  </head>
+  <body>
+    <main id="app">
+      <section id="s-load" class="scene">
+        <div class="dots"><i></i><i></i><i></i></div>
+      </section>
+
+      <section id="s-err" class="scene" hidden>
+        <p class="msg">Diese Karte braucht ihren Schlüssel.<br />Scann sie nochmal 🙂</p>
+      </section>
+
+      <section id="s-gift" class="scene" hidden>
+        <p class="stub">Screen 1 · Geschenk</p>
+        <h1 class="who"></h1>
+        <button class="btn">Antippen 🎁</button>
+      </section>
+
+      <section id="s-cake" class="scene" hidden>
+        <p class="stub">Screen 2 · Kuchen</p>
+        <h1 class="title"></h1>
+        <p class="info"></p>
+        <button class="btn">Kerze aus</button>
+      </section>
+
+      <section id="s-gen" class="scene" hidden>
+        <p class="stub">Screen 3 · Generator</p>
+        <p class="status"></p>
+        <div class="thumbs"></div>
+        <button class="btn">Weiter</button>
+      </section>
+
+      <section id="s-burst" class="scene" hidden>
+        <p class="stub">Screen 4 · Explosion</p>
+        <button class="btn">Weiter</button>
+      </section>
+
+      <section id="s-finale" class="scene" hidden>
+        <p class="stub">Screen 5 · Finale</p>
+        <button class="btn">Aufräumen 🧹</button>
+      </section>
+
+      <section id="s-card" class="scene" hidden>
+        <p class="stub">Screen 6 · Karte</p>
+        <article class="card">
+          <h2 data-c="head"></h2>
+          <p data-c="title"></p>
+          <p data-c="meta"></p>
+          <p data-c="extra"></p>
+          <p data-c="greeting"></p>
+          <div class="sign"></div>
+          <p class="fine" data-c="fine"></p>
+        </article>
+        <button class="btn btn-2 again">↻ Nochmal von vorn</button>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "_note": "Beispiel ohne echte Daten. Kopie als private/content.json anlegen und befüllen. Felder mit _ werden beim Build ignoriert.",
+  "name": "Name",
+  "from": "Absender",
+  "cake": { "title": "Alles Gute zum Geburtstag!" },
+  "gen": {
+    "defaultSec": 22,
+    "lines": [
+      { "text": "Initialisiere Generator …", "ms": 2800 },
+      { "text": "Prüfe Interessen:", "checks": true },
+      { "text": "99 % … 99 % … 99 % …" },
+      { "text": "Ergebnis gefunden." }
+    ],
+    "checks": ["Interesse 1", "Interesse 2", "Interesse 3"]
+  },
+  "card": {
+    "head": "ÜBERSCHRIFT",
+    "title": "für <Was>",
+    "meta": "<Ort> · <Datum> · <Zusatz>",
+    "extra": "<Zusatzzeile>",
+    "greeting": "<Gruß>",
+    "fine": "<Kleingedrucktes>"
+  },
+  "contact": {
+    "_wa": "Nummer im internationalen Format ohne + (z. B. 4917012345678) oder fertiger wa.me-Link",
+    "wa": "49XXXXXXXXXX",
+    "text": "<vorgefertigte Nachricht>"
+  },
+  "item": { "color": "#CCCCCC", "seam": "#FFFFFF", "count": 25 }
+}
