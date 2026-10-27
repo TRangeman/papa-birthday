@@ -7,8 +7,8 @@
     <meta name="robots" content="noindex" />
     <title>🎂</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>" />
-    <script type="module" crossorigin src="/papa-birthday/assets/index-CBAGnWaM.js"></script>
-    <link rel="stylesheet" crossorigin href="/papa-birthday/assets/index-DYzYSVIg.css">
+    <script type="module" crossorigin src="/papa-birthday/assets/index-HS2giQIm.js"></script>
+    <link rel="stylesheet" crossorigin href="/papa-birthday/assets/index-5GEdi9qv.css">
   </head>
   <body>
     <main id="app">
@@ -21,16 +21,74 @@
       </section>
 
       <section id="s-gift" class="scene" hidden>
-        <p class="stub">Screen 1 · Geschenk</p>
+        <svg class="gift" viewBox="0 0 200 200" aria-hidden="true">
+          <g class="gift-box">
+            <rect class="box" x="40" y="92" width="120" height="88" rx="12" />
+            <rect class="ribbon" x="92" y="92" width="16" height="88" />
+          </g>
+          <g class="gift-lid">
+            <rect class="lid" x="30" y="70" width="140" height="28" rx="10" />
+            <rect class="ribbon" x="92" y="70" width="16" height="28" />
+            <ellipse class="bow" cx="82" cy="58" rx="18" ry="11" transform="rotate(-25 82 58)" />
+            <ellipse class="bow" cx="118" cy="58" rx="18" ry="11" transform="rotate(25 118 58)" />
+            <circle class="ribbon" cx="100" cy="66" r="8" />
+          </g>
+        </svg>
         <h1 class="who"></h1>
-        <button class="btn">Antippen 🎁</button>
+        <p class="hint">antippen 🎁</p>
       </section>
 
       <section id="s-cake" class="scene" hidden>
-        <p class="stub">Screen 2 · Kuchen</p>
+        <div class="floaties" aria-hidden="true"></div>
         <h1 class="title"></h1>
-        <p class="info"></p>
-        <button class="btn">Kerze aus</button>
+        <svg class="cake" viewBox="0 0 240 280" aria-hidden="true">
+          <defs>
+            <radialGradient id="glow-g">
+              <stop offset="0" stop-color="#ffd27a" stop-opacity="0.7" />
+              <stop offset="1" stop-color="#ffd27a" stop-opacity="0" />
+            </radialGradient>
+            <linearGradient id="flame-g" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stop-color="#e8593f" />
+              <stop offset="0.45" stop-color="#ffa53d" />
+              <stop offset="1" stop-color="#ffe9a6" />
+            </linearGradient>
+          </defs>
+          <ellipse class="plate" cx="120" cy="250" rx="112" ry="20" />
+          <path class="layer" d="M30 150 V230 A90 22 0 0 0 210 230 V150 Z" />
+          <path class="stripe" d="M30 186 A90 22 0 0 0 210 186 V198 A90 22 0 0 1 30 198 Z" />
+          <ellipse class="icing" cx="120" cy="150" rx="90" ry="22" />
+          <rect class="icing" x="44" y="156" width="12" height="16" rx="6" />
+          <rect class="icing" x="74" y="162" width="12" height="22" rx="6" />
+          <rect class="icing" x="106" y="164" width="12" height="13" rx="6" />
+          <rect class="icing" x="140" y="163" width="12" height="20" rx="6" />
+          <rect class="icing" x="174" y="158" width="12" height="11" rx="6" />
+          <rect class="sprinkle s1" x="66" y="143" width="9" height="3.5" rx="1.75" transform="rotate(-30 70 145)" />
+          <rect class="sprinkle s2" x="88" y="156" width="9" height="3.5" rx="1.75" transform="rotate(20 92 158)" />
+          <rect class="sprinkle s3" x="146" y="140" width="9" height="3.5" rx="1.75" transform="rotate(40 150 142)" />
+          <rect class="sprinkle s1" x="160" y="154" width="9" height="3.5" rx="1.75" transform="rotate(-15 164 156)" />
+          <rect class="sprinkle s2" x="134" y="158" width="9" height="3.5" rx="1.75" transform="rotate(65 138 160)" />
+          <rect class="sprinkle s3" x="82" y="138" width="9" height="3.5" rx="1.75" transform="rotate(80 86 140)" />
+          <rect class="candle" x="111" y="78" width="18" height="76" rx="5" />
+          <rect class="candle-stripe" x="111" y="92" width="18" height="6" />
+          <rect class="candle-stripe" x="111" y="110" width="18" height="6" />
+          <rect class="candle-stripe" x="111" y="128" width="18" height="6" />
+          <line class="wick" x1="120" y1="78" x2="120" y2="68" />
+          <circle class="glow" cx="120" cy="52" r="34" fill="url(#glow-g)" />
+          <g class="flame-tilt">
+            <g class="flame">
+              <path d="M120 22 C134 42 136 56 120 72 C104 56 106 42 120 22 Z" fill="url(#flame-g)" />
+              <path d="M120 44 C127 54 127 62 120 70 C113 62 113 54 120 44 Z" fill="#fff6d6" />
+            </g>
+          </g>
+          <g class="smoke"></g>
+        </svg>
+        <div class="wish" hidden>
+          <p class="wish-text">Wünsch dir was … und puste die Kerze aus! 🎤</p>
+          <button class="btn mic-btn">Mikrofon erlauben</button>
+          <p class="wish-hint">oder tipp auf die Kerze</p>
+        </div>
+        <p class="party" hidden>🎉</p>
+        <pre class="mic-debug" hidden></pre>
       </section>
 
       <section id="s-gen" class="scene" hidden>
