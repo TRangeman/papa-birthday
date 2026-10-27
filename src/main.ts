@@ -7,6 +7,7 @@ import './styles/gift.css';
 import './styles/cake.css';
 import './styles/generator.css';
 import './styles/finale.css';
+import './styles/card.css';
 import { importKey, keepKey, loadPack, readKey } from './crypto';
 import type { App, Content, MediaData, Pack } from './types';
 import { gift } from './screens/gift';

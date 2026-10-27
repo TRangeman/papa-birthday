@@ -12,7 +12,8 @@
   display: none;
 }
 
-#s-card.covered .again {
+#s-card.covered .actions,
+#s-card.covered .flip-hint {
   visibility: hidden;
 }
 

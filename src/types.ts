@@ -8,7 +8,16 @@ export interface Content {
     lines: { text: string; ms?: number; checks?: boolean }[];
     checks: string[];
   };
-  card: { head: string; title: string; meta: string; extra: string; greeting: string; fine: string };
+  card: {
+    head: string;
+    serial: string;
+    kicker: string;
+    title: string;
+    fields: { label: string; value: string }[];
+    greeting: string;
+    stub: string;
+    fine: string;
+  };
   contact: { wa: string; text: string };
   item: { color: string; seam: string; count: number };
 }

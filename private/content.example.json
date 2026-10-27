@@ -15,10 +15,15 @@
   },
   "card": {
     "head": "ÜBERSCHRIFT",
-    "title": "für <Was>",
-    "meta": "<Ort> · <Datum> · <Zusatz>",
-    "extra": "<Zusatzzeile>",
+    "serial": "0000-0000",
+    "kicker": "für einen Tag beim",
+    "title": "<Was>",
+    "fields": [
+      { "label": "Ort", "value": "<Ort>" },
+      { "label": "Datum", "value": "<Datum>" }
+    ],
     "greeting": "<Gruß>",
+    "stub": "Kontrollabschnitt · nicht abtrennen",
     "fine": "<Kleingedrucktes>"
   },
   "contact": {
