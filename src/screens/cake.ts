@@ -7,7 +7,7 @@ import { listen, micSupported } from '../audio/mic';
 import type { App, Scene } from '../types';
 
 const DEBUG = new URLSearchParams(location.search).has('debug');
-const WISH_AFTER_MS = 10000;
+const WISH_AFTER_MS = 0;
 const HINT_AFTER_MS = 8000;
 const HIT_PAD = 36; // Trefferfläche um Kerze und Flamme, in px
 

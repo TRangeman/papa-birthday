@@ -13,6 +13,8 @@ const FINGER_R = 46;
 const WALL = 200;
 const LAUNCH_MS = 700; // fliegen raus, werden kurz größer und "landen"
 const STEP_MS = 1000 / 60;
+const LAUNCH_DRAG = 0.045; // beim Rausfliegen bremsen, damit die Karte zugedeckt bleibt
+const ROLL_DRAG = 0.02; // danach weit ausrollen (langsamer Wischer ≈ 240 px, mittlerer ≈ 470 px)
 const TIDY_AFTER_MS = 20000;
 // Anteil freier Kartenfläche, ab dem "Aufräumen" erscheint. Die Karte ist fast bildschirmbreit,
 // weggeschobene Objekte stauen sich also an ihren Rändern: mehr als ca. 60 % frei ist kaum erreichbar.
@@ -207,7 +209,7 @@ export function finale(app: App): Scene {
     const n = Math.min(count, MAX_COUNT);
     items = Array.from({ length: n }, (_, i) => {
       const body = Bodies.circle(cx + (Math.random() - 0.5) * 10, cy + (Math.random() - 0.5) * 10, r, {
-        frictionAir: 0.045,
+        frictionAir: LAUNCH_DRAG,
         friction: 0.05,
         restitution: 0.6,
         collisionFilter: { category: ITEMS, mask: WALLS }, // beim Rausfliegen nur die Wände
@@ -433,7 +435,10 @@ export function finale(app: App): Scene {
 
     if (!landed && t > LAUNCH_MS * 0.7) {
       landed = true;
-      for (const it of items) it.body.collisionFilter.mask = WALLS | ITEMS | FINGER;
+      for (const it of items) {
+        it.body.collisionFilter.mask = WALLS | ITEMS | FINGER;
+        it.body.frictionAir = ROLL_DRAG;
+      }
     }
 
     // Aufräumen: die Übrigen rollen nacheinander von selbst in den Korb
@@ -535,7 +540,9 @@ export function finale(app: App): Scene {
   canvas.addEventListener('pointermove', (e) => {
     if (!engine || !finger) return;
     const p = at(e);
-    Body.setPosition(finger, p);
+    // Mit updateVelocity bekommt der Finger eine Geschwindigkeit und gibt beim Anstoßen Schwung mit
+    // (Matter.js kann das, die Typen kennen den dritten Parameter nicht)
+    (Body.setPosition as (body: Matter.Body, position: Matter.Vector, updateVelocity: boolean) => void)(finger, p, true);
     wake(p);
   });
   canvas.addEventListener('pointerup', release);
