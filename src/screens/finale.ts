@@ -30,7 +30,8 @@ const DROP_MS = 380; // Fall-Animation in den Korb
 const WOBBLE_MS = 600;
 const DONE_FADE_MS = 450; // Korb blendet aus, wenn alles drin ist
 const BUMP_GAP_MS = 60;
-const IN_BASKET = 0.55; // Größe im Korb relativ zur normalen Größe
+const IN_BASKET = 0.55; // Größe im Korb relativ zur normalen Größe (höchstens; wird bei Bedarf kleiner)
+const MOUND_ROWS = 2; // so viele Reihen dürfen über den Rand ragen
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Kollisionsgruppen
@@ -146,6 +147,7 @@ export function finale(app: App): Scene {
   let items: Item[] = [];
   let drops: Drop[] = [];
   let slots: Slot[] = [];
+  let slotScale = IN_BASKET;
   let finger: Matter.Body | undefined;
   let art: ReturnType<typeof sprites>;
   let w = 0;
@@ -185,25 +187,38 @@ export function finale(app: App): Scene {
     drops = [];
   }
 
-  // Plätze im Korb: von unten nach oben in versetzten Reihen, ist er voll, wächst oben ein Haufen
+  // Plätze im Korb: von unten nach oben in versetzten, leicht überlappenden Reihen. Die Größe wird so
+  // gewählt, dass alle hineinpassen und höchstens ein flacher Hügel über den Rand ragt.
   function basketSlots(n: number) {
-    const rr = r * IN_BASKET;
+    for (let scale = IN_BASKET; ; scale *= 0.93) {
+      const rr = r * scale;
+      const out = layoutSlots(n, rr);
+      const top = Math.min(...out.map((s) => s.y));
+      if (top >= rimY - rr * MOUND_ROWS * 1.25 || scale < 0.25) {
+        slotScale = scale;
+        return out;
+      }
+    }
+  }
+
+  function layoutSlots(n: number, rr: number) {
     const out: Slot[] = [];
-    let y = rimY + bh - rr * 1.1;
+    let y = rimY + bh - rr * 1.05;
     for (let row = 0; out.length < n; row++) {
       const depth = Math.min(1, Math.max(0, (y - rimY) / bh)); // 0 am Rand, 1 am Boden
-      let halfW = (bw / 2) * (1 - 0.18 * depth) - rr;
-      if (y < rimY) halfW -= (rimY - y) * 0.9; // Haufen über dem Rand wird schmaler
-      const cols = Math.max(1, Math.floor((2 * halfW) / (rr * 1.6)) + 1);
-      const step = cols > 1 ? (2 * halfW) / (cols - 1) : 0;
+      let halfW = (bw / 2) * (1 - 0.18 * depth) - rr * 0.8;
+      if (y < rimY) halfW -= (rimY - y) * 0.35; // Hügel über dem Rand wird nur leicht schmaler
+      halfW = Math.max(halfW, rr * 1.2);
+      const cols = Math.max(3, Math.floor((2 * halfW) / (rr * 1.5)) + 1);
+      const step = (2 * halfW) / (cols - 1);
       for (let i = 0; i < cols && out.length < n; i++) {
         out.push({
-          x: bx + (cols > 1 ? -halfW + i * step : 0) + (row % 2 ? step / 4 : -step / 4) + (Math.random() - 0.5) * 4,
-          y: y + (Math.random() - 0.5) * 4,
+          x: bx - halfW + i * step + (row % 2 ? step / 4 : -step / 4) + (Math.random() - 0.5) * 3,
+          y: y + (Math.random() - 0.5) * 3,
           angle: Math.random() * Math.PI * 2,
         });
       }
-      y -= rr * 1.4;
+      y -= rr * 1.25;
     }
     return out;
   }
@@ -321,7 +336,7 @@ export function finale(app: App): Scene {
     const total = caught + items.length;
     const falling = new Set(drops.map((d) => d.slot));
     for (let i = 0; i < caught; i++) {
-      if (!falling.has(i)) drawItem(slots[i].x, slots[i].y, slots[i].angle, r * IN_BASKET);
+      if (!falling.has(i)) drawItem(slots[i].x, slots[i].y, slots[i].angle, r * slotScale);
     }
 
     // Was gerade hineinfällt: in einem kleinen Bogen auf seinen Platz, dabei schrumpfen
@@ -330,7 +345,7 @@ export function finale(app: App): Scene {
       const e = k * k;
       const s = slots[d.slot];
       const arc = Math.sin(k * Math.PI) * r * 0.6;
-      drawItem(d.x + (s.x - d.x) * e, d.y + (s.y - d.y) * e - arc, d.angle + (s.angle - d.angle) * e, r * (1 - (1 - IN_BASKET) * k));
+      drawItem(d.x + (s.x - d.x) * e, d.y + (s.y - d.y) * e - arc, d.angle + (s.angle - d.angle) * e, r * (1 - (1 - slotScale) * k));
     }
 
     // Vorderseite: halbdurchsichtiger Korbkörper mit Drahtgitter
@@ -486,7 +501,8 @@ export function finale(app: App): Scene {
       items.forEach((it, i) => {
         if (it.gone || now < tidyAt + i * TIDY_STAGGER_MS) return;
         const b = it.body;
-        const dx = bx - b.position.x;
+        // über die ganze Öffnung verteilt zielen, damit sie nicht in einer Reihe ankommen
+        const dx = bx + ((i % 5) - 2) * bw * 0.15 - b.position.x;
         const dy = rimY + bh * 0.3 - b.position.y;
         const d = Math.hypot(dx, dy) || 1;
         Sleeping.set(b, false);
