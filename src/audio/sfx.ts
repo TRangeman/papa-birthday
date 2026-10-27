@@ -32,7 +32,7 @@ export function tick(volume = 1) {
 }
 
 // Explosion: "Plopp" wie ein Korken, Ton schnellt nach oben, dazu ein kurzer Knack
-export function plopp() {
+export function plopp(volume = 1) {
   const c = audio();
   const t = c.currentTime;
   const osc = c.createOscillator();
@@ -40,7 +40,7 @@ export function plopp() {
   osc.frequency.exponentialRampToValueAtTime(900, t + 0.06);
   const env = c.createGain();
   env.gain.setValueAtTime(0, t);
-  env.gain.linearRampToValueAtTime(0.7, t + 0.004);
+  env.gain.linearRampToValueAtTime(0.7 * volume, t + 0.004);
   env.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
   osc.connect(env).connect(fxOut());
   osc.start(t);
@@ -52,7 +52,7 @@ export function plopp() {
   band.type = 'bandpass';
   band.frequency.value = 1500;
   const click = c.createGain();
-  click.gain.setValueAtTime(0.4, t);
+  click.gain.setValueAtTime(0.4 * volume, t);
   click.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
   src.connect(band).connect(click).connect(fxOut());
   src.start(t);

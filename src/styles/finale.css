@@ -16,9 +16,10 @@
   visibility: hidden;
 }
 
+/* oben, weil unten der Korb steht */
 #s-card .tidy {
   position: absolute;
-  bottom: 28px;
+  top: 20px;
   z-index: 3;
   box-shadow: 0 6px 18px rgb(46 36 32 / 0.3);
   animation: rise 0.4s ease-out;

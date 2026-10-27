@@ -1,14 +1,15 @@
 // Screen 5: Objekt-Ebene über der Karte. Canvas 2D zeichnet, Matter.js rechnet.
 // Ansicht von oben: keine Schwerkraft, Luftreibung; der Finger ist ein unsichtbarer runder Körper.
+// Unten steht ein Korb: Was in seine Öffnung geschoben wird, fällt hinein. Sind alle drin, ist die Karte frei.
 import Matter from 'matter-js';
-import { bump } from '../audio/sfx';
+import { bump, plopp } from '../audio/sfx';
 import type { App, Scene } from '../types';
 
 const { Engine, Bodies, Body, Composite, Events, Sleeping } = Matter;
 
 const SIZE = 1 / 6; // Durchmesser relativ zur Breite
 const MAX_COUNT = 40;
-const FINGER_R = 26;
+const FINGER_R = 46;
 const WALL = 200;
 const LAUNCH_MS = 700; // fliegen raus, werden kurz größer und "landen"
 const STEP_MS = 1000 / 60;
@@ -17,11 +18,17 @@ const TIDY_AFTER_MS = 20000;
 // weggeschobene Objekte stauen sich also an ihren Rändern: mehr als ca. 60 % frei ist kaum erreichbar.
 const TIDY_FREE = 0.6;
 const TIDY_GAIN = 0.1; // … und mindestens so viel mehr als direkt nach der Landung (dort ca. 50 %)
+const TIDY_STAGGER_MS = 110; // beim Aufräumen rollt eins nach dem anderen in den Korb
+const TIDY_SPEED = 10;
 const FPS_CHECK_MS = 2000;
 const MIN_FPS = 40;
 const REDUCE_TO = 15;
 const FADE_MS = 300;
+const DROP_MS = 380; // Fall-Animation in den Korb
+const WOBBLE_MS = 600;
+const DONE_FADE_MS = 450; // Korb blendet aus, wenn alles drin ist
 const BUMP_GAP_MS = 60;
+const PEEK_SLOTS = [0, -0.28, 0.28, -0.14, 0.14, -0.38, 0.38]; // Objekte, die oben aus dem Korb gucken
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Kollisionsgruppen
@@ -31,7 +38,14 @@ const FINGER = 0x4;
 
 interface Item {
   body: Matter.Body;
-  gone?: number; // Zeitpunkt, ab dem es wegschrumpft
+  gone?: number; // Zeitpunkt, ab dem es wegschrumpft (Selbsttest)
+}
+
+interface Drop {
+  x: number;
+  y: number;
+  angle: number;
+  at: number;
 }
 
 // Einmal vorzeichnen, pro Frame nur noch kopieren: Grundkörper (dreht sich mit),
@@ -114,15 +128,27 @@ export function finale(app: App): Scene {
   const card = el.querySelector<HTMLElement>('.card')!;
   const ctx = canvas.getContext('2d')!;
   const { color, seam, count } = app.content.item;
+  const root = getComputedStyle(document.documentElement);
+  const petrol = root.getPropertyValue('--petrol').trim();
+  const paper = root.getPropertyValue('--paper').trim();
+  const ink = root.getPropertyValue('--ink').trim();
 
   let engine: Matter.Engine | undefined;
   let items: Item[] = [];
-  let walls: Matter.Body[] = [];
+  let drops: Drop[] = [];
   let finger: Matter.Body | undefined;
   let art: ReturnType<typeof sprites>;
   let w = 0;
   let h = 0;
   let r = 0;
+  // Korb: Mitte, Breite, Höhe, Oberkante (Rand)
+  let bx = 0;
+  let bw = 0;
+  let bh = 0;
+  let rimY = 0;
+  let caught = 0;
+  let wobbleAt = -Infinity;
+  let doneAt = 0;
   let raf = 0;
   let start = 0;
   let last = 0;
@@ -130,13 +156,12 @@ export function finale(app: App): Scene {
   let frames = 0;
   let landed = false;
   let fpsChecked = false;
-  let tidying = false;
+  let tidyAt = 0;
   let lastBump = 0;
   let lastCover = 0;
   let freeAtLanding = 0;
 
-  const outside = (b: Matter.Body) =>
-    b.position.x < -2 * r || b.position.x > w + 2 * r || b.position.y < -2 * r || b.position.y > h + 2 * r;
+  const inBasket = (x: number, y: number) => Math.abs(x - bx) < bw * 0.45 && y > rimY - r * 0.4 && y < rimY + bh;
 
   function stop() {
     cancelAnimationFrame(raf);
@@ -147,7 +172,7 @@ export function finale(app: App): Scene {
     engine = undefined;
     finger = undefined;
     items = [];
-    walls = [];
+    drops = [];
   }
 
   function launch() {
@@ -160,14 +185,19 @@ export function finale(app: App): Scene {
     r = (w * SIZE) / 2;
     art = sprites(r, dpr, color, seam);
 
+    bw = Math.min(w * 0.42, 180);
+    bh = bw * 0.62;
+    bx = w / 2;
+    rimY = h - 26 - bh;
+
     engine = Engine.create({ gravity: { x: 0, y: 0 }, enableSleeping: true });
     const wallOpts = { isStatic: true, collisionFilter: { category: WALLS } };
-    walls = [
+    Composite.add(engine.world, [
       Bodies.rectangle(w / 2, -WALL / 2, w + 2 * WALL, WALL, wallOpts),
       Bodies.rectangle(w / 2, h + WALL / 2, w + 2 * WALL, WALL, wallOpts),
       Bodies.rectangle(-WALL / 2, h / 2, WALL, h + 2 * WALL, wallOpts),
       Bodies.rectangle(w + WALL / 2, h / 2, WALL, h + 2 * WALL, wallOpts),
-    ];
+    ]);
 
     // Start in der Kartenmitte, damit die Karte möglichst zugedeckt wird
     const a = card.getBoundingClientRect();
@@ -189,7 +219,10 @@ export function finale(app: App): Scene {
       Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.3);
       return { body };
     });
-    Composite.add(engine.world, [...walls, ...items.map((it) => it.body)]);
+    Composite.add(
+      engine.world,
+      items.map((it) => it.body),
+    );
 
     // Leises "Tock" bei Zusammenstößen, gedrosselt
     Events.on(engine, 'collisionStart', (e) => {
@@ -206,15 +239,134 @@ export function finale(app: App): Scene {
     });
 
     start = last = performance.now();
-    acc = frames = lastCover = freeAtLanding = 0;
-    landed = fpsChecked = tidying = false;
+    acc = frames = lastCover = freeAtLanding = caught = tidyAt = doneAt = 0;
+    wobbleAt = -Infinity;
+    landed = fpsChecked = false;
     raf = requestAnimationFrame(frame);
+  }
+
+  function drawItem(x: number, y: number, angle: number, rr: number) {
+    const { base, light } = art;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.drawImage(base, -rr, -rr, rr * 2, rr * 2);
+    ctx.restore();
+    ctx.drawImage(light, x - rr, y - rr, rr * 2, rr * 2);
+  }
+
+  // Korb in Vorderansicht: hinten Innenraum + gefangene Objekte, vorne Drahtgitter, Rand und Zähler
+  function drawBasket(now: number) {
+    const ry = bw * 0.13;
+    const bottom = rimY + bh;
+    const half = bw / 2;
+    const footHalf = half * 0.82;
+    const age = now - wobbleAt;
+    const wobble = age < WOBBLE_MS ? 0.06 * Math.sin(age * 0.03) * (1 - age / WOBBLE_MS) : 0;
+
+    ctx.save();
+    if (doneAt) ctx.globalAlpha = Math.max(0, 1 - (now - doneAt) / DONE_FADE_MS);
+    ctx.translate(bx, bottom);
+    ctx.rotate(wobble);
+    ctx.translate(-bx, -bottom);
+
+    // Innenraum
+    ctx.fillStyle = 'rgba(31,95,107,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(bx, rimY, half, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Gefangene gucken oben heraus, je voller, desto höher
+    const total = caught + items.length;
+    const fill = total ? caught / total : 0;
+    const shown = Math.min(caught, PEEK_SLOTS.length);
+    for (let i = 0; i < shown; i++) {
+      drawItem(bx + PEEK_SLOTS[i] * bw, rimY + ry * 0.2 - fill * r * 0.5 - (i % 2) * 3, i * 1.7, r * 0.72);
+    }
+
+    // Was gerade hineinfällt: zur Korbmitte, schrumpft und sinkt hinter die Vorderseite
+    for (const d of drops) {
+      const k = Math.min(1, (now - d.at) / DROP_MS);
+      const e = k * k;
+      drawItem(d.x + (bx - d.x) * e, d.y + (rimY + ry - d.y) * e + e * r * 0.8, d.angle + k * 2, r * (1 - 0.3 * k));
+    }
+
+    // Vorderseite: halbdurchsichtiger Korbkörper mit Drahtgitter
+    ctx.beginPath();
+    ctx.moveTo(bx - half, rimY);
+    ctx.lineTo(bx - footHalf, bottom);
+    ctx.lineTo(bx + footHalf, bottom);
+    ctx.lineTo(bx + half, rimY);
+    ctx.ellipse(bx, rimY, half, ry, 0, 0, Math.PI);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(31,95,107,0.22)';
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = petrol;
+    ctx.lineWidth = 2;
+    for (let i = 1; i < 7; i++) {
+      const top = bx - half + (bw * i) / 7;
+      const foot = bx - footHalf + (2 * footHalf * i) / 7;
+      ctx.beginPath();
+      ctx.moveTo(top, rimY);
+      ctx.lineTo(foot, bottom);
+      ctx.stroke();
+    }
+    for (let j = 1; j < 4; j++) {
+      const y = rimY + ry + ((bh - ry) * j) / 4;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Umriss, Füße und vorderer Rand
+    ctx.strokeStyle = petrol;
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(bx - half, rimY);
+    ctx.lineTo(bx - footHalf, bottom);
+    ctx.lineTo(bx + footHalf, bottom);
+    ctx.lineTo(bx + half, rimY);
+    ctx.stroke();
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(bx - footHalf + 6, bottom);
+    ctx.lineTo(bx - footHalf + 2, bottom + 10);
+    ctx.moveTo(bx + footHalf - 6, bottom);
+    ctx.lineTo(bx + footHalf - 2, bottom + 10);
+    ctx.stroke();
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.ellipse(bx, rimY, half, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Zähler
+    const label = `${caught} / ${total}`;
+    ctx.font = '600 15px Fredoka, system-ui, sans-serif';
+    const tw = ctx.measureText(label).width + 18;
+    const ty = rimY + bh * 0.58;
+    ctx.fillStyle = paper;
+    ctx.beginPath();
+    ctx.roundRect(bx - tw / 2, ty - 13, tw, 26, 13);
+    ctx.fill();
+    ctx.fillStyle = ink;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, bx, ty + 1);
+    ctx.restore();
   }
 
   function draw(now: number, t: number) {
     ctx.clearRect(0, 0, w, h);
+    drawBasket(now);
+
     const s = launchScale(t);
-    const { base, light, shadow, shadowR } = art;
+    const { shadow, shadowR } = art;
     const lift = r * 0.15 + Math.max(0, s - 1) * r * 1.2; // höher = Schatten weiter weg
     for (const pass of ['shadow', 'body']) {
       for (const it of items) {
@@ -226,15 +378,21 @@ export function finale(app: App): Scene {
           const sr = shadowR * sc;
           ctx.drawImage(shadow, x - sr + lift * 0.6, y - sr + lift, sr * 2, sr * 2);
         } else {
-          const rr = r * sc;
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(it.body.angle);
-          ctx.drawImage(base, -rr, -rr, rr * 2, rr * 2);
-          ctx.restore();
-          ctx.drawImage(light, x - rr, y - rr, rr * 2, rr * 2);
+          drawItem(x, y, it.body.angle, r * sc);
         }
       }
+    }
+
+    // Halbtransparenter Kreis unter dem Finger
+    if (finger) {
+      const { x, y } = finger.position;
+      ctx.beginPath();
+      ctx.arc(x, y, FINGER_R, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(251,241,230,0.3)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(46,36,32,0.25)';
+      ctx.stroke();
     }
   }
 
@@ -255,6 +413,14 @@ export function finale(app: App): Scene {
     return free / (cols * rows);
   }
 
+  function catchItem(it: Item, now: number) {
+    Composite.remove(engine!.world, it.body);
+    drops.push({ x: it.body.position.x, y: it.body.position.y, angle: it.body.angle, at: now });
+    caught++;
+    wobbleAt = now;
+    plopp(0.5);
+  }
+
   function frame(now: number) {
     if (!engine) return;
     acc += Math.min(100, now - last);
@@ -270,8 +436,29 @@ export function finale(app: App): Scene {
       for (const it of items) it.body.collisionFilter.mask = WALLS | ITEMS | FINGER;
     }
 
-    draw(now, t);
-    frames++;
+    // Aufräumen: die Übrigen rollen nacheinander von selbst in den Korb
+    if (tidyAt) {
+      items.forEach((it, i) => {
+        if (it.gone || now < tidyAt + i * TIDY_STAGGER_MS) return;
+        const b = it.body;
+        const dx = bx - b.position.x;
+        const dy = rimY + bh * 0.3 - b.position.y;
+        const d = Math.hypot(dx, dy) || 1;
+        Sleeping.set(b, false);
+        b.collisionFilter.mask = 0;
+        Body.setVelocity(b, { x: (dx / d) * TIDY_SPEED, y: (dy / d) * TIDY_SPEED });
+      });
+    }
+
+    // Was in der Korböffnung landet, ist gefangen
+    if (landed) {
+      items = items.filter((it) => {
+        if (it.gone || !inBasket(it.body.position.x, it.body.position.y)) return true;
+        catchItem(it, now);
+        return false;
+      });
+    }
+    drops = drops.filter((d) => now - d.at < DROP_MS);
 
     // Selbsttest: zu langsam → ein paar Objekte schrumpfen weg
     if (!fpsChecked && t >= FPS_CHECK_MS) {
@@ -289,14 +476,23 @@ export function finale(app: App): Scene {
       return false;
     });
 
-    if (!tidying && tidyBtn.hidden && t > LAUNCH_MS * 2 && now - lastCover > 500) {
+    draw(now, t);
+    frames++;
+
+    if (!tidyAt && tidyBtn.hidden && t > LAUNCH_MS * 2 && now - lastCover > 500) {
       lastCover = now;
       const free = freeShare();
       if (!freeAtLanding) freeAtLanding = free;
       if (t >= TIDY_AFTER_MS || free >= Math.max(TIDY_FREE, freeAtLanding + TIDY_GAIN)) tidyBtn.hidden = false;
     }
 
-    if (tidying && items.every((it) => outside(it.body))) return finish();
+    // Alles drin: Korb blendet aus, dann ist die Karte frei
+    if (landed && !items.length && !drops.length && !doneAt) {
+      doneAt = now;
+      tidyBtn.hidden = true;
+      release();
+    }
+    if (doneAt && now - doneAt > DONE_FADE_MS) return finish();
     raf = requestAnimationFrame(frame);
   }
 
@@ -321,13 +517,13 @@ export function finale(app: App): Scene {
       }
     }
   };
-  const release = () => {
+  function release() {
     if (engine && finger) Composite.remove(engine.world, finger);
     finger = undefined;
-  };
+  }
 
   canvas.addEventListener('pointerdown', (e) => {
-    if (!engine || tidying) return;
+    if (!engine || tidyAt || doneAt) return;
     try {
       canvas.setPointerCapture(e.pointerId);
     } catch {}
@@ -345,26 +541,11 @@ export function finale(app: App): Scene {
   canvas.addEventListener('pointerup', release);
   canvas.addEventListener('pointercancel', release);
 
-  // Aufräumen: Wände weg, alles fliegt nach außen aus dem Bild
   tidyBtn.onclick = () => {
-    if (!engine || tidying) return;
-    tidying = true;
+    if (!engine || tidyAt) return;
+    tidyAt = performance.now();
     tidyBtn.hidden = true;
     release();
-    Composite.remove(engine.world, walls);
-    for (const it of items) {
-      const b = it.body;
-      Sleeping.set(b, false);
-      b.collisionFilter.mask = 0;
-      b.frictionAir = 0.01;
-      const dx = b.position.x - w / 2;
-      const dy = b.position.y - h / 2;
-      const d = Math.hypot(dx, dy) || 1;
-      Body.setVelocity(b, {
-        x: (dx / d) * 14 + (Math.random() - 0.5) * 3,
-        y: (dy / d) * 14 + (Math.random() - 0.5) * 3,
-      });
-    }
   };
 
   return {
