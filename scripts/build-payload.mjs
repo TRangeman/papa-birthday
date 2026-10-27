@@ -79,24 +79,28 @@ const toWebp = (file) =>
   sharp(file).rotate().resize(1080, 1080, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 75 }).toBuffer();
 
 // Mit startSec/durationSec aus content.json: Ausschnitt per ffmpeg, kurze Fades, 128 kbit/s, ohne Cover und Tags.
-// Ohne Angaben wird die Datei unverändert übernommen.
+// Nur startSec: ab dort bis zum Ende. Ohne Angaben wird die Datei unverändert übernommen.
 async function audioFile(name, file, cut) {
   if (!existsSync(file)) return null;
-  if (!cut?.durationSec) return { name, type: 'audio/mpeg', buf: await readFile(file) };
+  if (cut?.startSec == null && !cut?.durationSec) return { name, type: 'audio/mpeg', buf: await readFile(file) };
   const start = cut.startSec ?? 0;
   const dur = cut.durationSec;
   const fadeIn = start > 0 ? 0.5 : 0.05;
-  const fadeOut = Math.min(1.5, dur / 4);
+  const fades = [`afade=t=in:d=${fadeIn}`];
+  if (dur) {
+    const fadeOut = Math.min(1.5, dur / 4);
+    fades.push(`afade=t=out:st=${dur - fadeOut}:d=${fadeOut}`);
+  }
   const { stdout } = await run(
     ffmpegPath,
     [
       '-v', 'error',
       '-ss', String(start),
-      '-t', String(dur),
+      ...(dur ? ['-t', String(dur)] : []),
       '-i', file,
       '-vn',
       '-map_metadata', '-1',
-      '-af', `afade=t=in:d=${fadeIn},afade=t=out:st=${dur - fadeOut}:d=${fadeOut}`,
+      '-af', fades.join(','),
       '-c:a', 'libmp3lame',
       '-b:a', '128k',
       '-f', 'mp3',
@@ -104,7 +108,7 @@ async function audioFile(name, file, cut) {
     ],
     { encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 },
   );
-  return { name, type: 'audio/mpeg', buf: stdout, cut: `${start}–${start + dur} s` };
+  return { name, type: 'audio/mpeg', buf: stdout, cut: dur ? `${start}–${start + dur} s` : `ab ${start} s bis Ende` };
 }
 
 async function optionalFile(name, ...candidates) {

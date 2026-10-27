@@ -4,7 +4,7 @@ export interface Content {
   from: string;
   cake: { title: string };
   gen: {
-    defaultSec: number;
+    sec: number; // Dauer des Generators, unabhängig von der Songlänge
     lines: { text: string; ms?: number; checks?: boolean }[];
     checks: string[];
   };

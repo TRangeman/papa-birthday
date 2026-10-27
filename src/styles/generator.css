@@ -1,0 +1,161 @@
+#s-gen {
+  gap: 24px;
+}
+
+.frame {
+  position: relative;
+  width: min(64vw, 270px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 6px var(--petrol),
+    0 14px 30px rgb(46 36 32 / 0.25);
+}
+
+.frame .ph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+
+.frame .ph.on {
+  opacity: 1;
+}
+
+#s-gen.rapid .ph {
+  transition: none;
+}
+
+/* Ohne Fotos: abstrakte, drehende Fläche */
+.frame.empty {
+  background: conic-gradient(var(--accent), var(--surface), var(--petrol), var(--accent));
+  animation: spin 4s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(80vw, 330px);
+}
+
+.bar {
+  flex: 1;
+  height: 14px;
+  border-radius: 999px;
+  background: rgb(46 36 32 / 0.12);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.pct {
+  min-width: 3.4em;
+  font: 600 0.95rem ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Terminal */
+.term {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: min(88vw, 370px);
+  height: 8.6em;
+  padding: 12px 14px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 13px/1.45 ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  text-align: left;
+}
+
+/* oben angeschnittene Zeilen weich ausblenden */
+.term {
+  position: relative;
+}
+
+.term::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2.6em;
+  background: linear-gradient(var(--ink) 35%, transparent);
+}
+
+.term .line {
+  opacity: 0.45;
+}
+
+.term .line::before {
+  content: '> ';
+  color: var(--accent);
+}
+
+.term .line.cur {
+  opacity: 1;
+}
+
+.term .line.cur::after {
+  content: '▋';
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Glitch bei 99 % */
+#s-gen.glitch .frame {
+  filter: hue-rotate(90deg) saturate(2);
+  animation: jitter 0.1s steps(2) infinite;
+}
+
+#s-gen.glitch .term,
+#s-gen.glitch .pct {
+  text-shadow:
+    2px 0 var(--accent),
+    -2px 0 #4fc3d1;
+  animation: jitter 0.13s steps(2) infinite;
+}
+
+@keyframes jitter {
+  0% {
+    translate: 3px -2px;
+  }
+  50% {
+    translate: -4px 2px;
+  }
+  100% {
+    translate: 2px 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame.empty {
+    animation: none;
+  }
+}
