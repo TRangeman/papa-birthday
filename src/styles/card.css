@@ -127,9 +127,10 @@
 }
 
 /* Ausschnitt der Unterschrift-Datei, nur der Bereich mit Schrift */
+/* Größe über die Höhe begrenzt, damit kurze und lange Unterschriften gleich wirken */
 .sign .sign-crop {
   position: relative;
-  width: 58%;
+  width: min(70%, calc(40px * var(--ratio, 4)));
   margin: 8px 0 2px;
   overflow: hidden;
 }

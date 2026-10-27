@@ -57,6 +57,7 @@ export function card(app: App): Scene {
     const crop = document.createElement('div');
     crop.className = 'sign-crop';
     crop.style.aspectRatio = String((bw * sigRatio) / bh);
+    crop.style.setProperty('--ratio', String((bw * sigRatio) / bh));
     crop.append(img);
     sign.replaceChildren(crop);
   } else {
