@@ -20,7 +20,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Unehrlicher Ladebalken bis zur vorletzten Caption: [Zeitanteil, Prozent]
 const BAR: [number, number][] = [
-  [0, 0], [0.1, 12], [0.18, 13], [0.26, 34], [0.33, 27], [0.42, 46],
+  [0, 0], [0.1, 12], [0.18, 13], [0.26, 34], [0.33, 36], [0.42, 46],
   [0.55, 51], [0.64, 72], [0.72, 73], [0.86, 93], [1, 99],
 ];
 
