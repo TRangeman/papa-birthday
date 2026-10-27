@@ -7,8 +7,8 @@
     <meta name="robots" content="noindex" />
     <title>🎂</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>" />
-    <script type="module" crossorigin src="/papa-birthday/assets/index-BucEruPK.js"></script>
-    <link rel="stylesheet" crossorigin href="/papa-birthday/assets/index-CWKW9w3S.css">
+    <script type="module" crossorigin src="/papa-birthday/assets/index-CdDda0TZ.js"></script>
+    <link rel="stylesheet" crossorigin href="/papa-birthday/assets/index-DhWDpXer.css">
   </head>
   <body>
     <main id="app">
@@ -87,7 +87,6 @@
           <button class="btn mic-btn">Mikrofon erlauben</button>
           <p class="wish-hint">oder tipp auf die Kerze</p>
         </div>
-        <p class="party" hidden>🎉</p>
         <pre class="mic-debug" hidden></pre>
       </section>
 
@@ -105,16 +104,37 @@
 
       <!-- Screen 4 (Explosion) läuft auf dem Generator, Screen 5 (Finale) als Ebene über der Karte -->
       <section id="s-card" class="scene" hidden>
-        <article class="card">
-          <h2 data-c="head"></h2>
-          <p data-c="title"></p>
-          <p data-c="meta"></p>
-          <p data-c="extra"></p>
-          <p data-c="greeting"></p>
-          <div class="sign"></div>
-          <p class="fine" data-c="fine"></p>
-        </article>
-        <button class="btn btn-2 again">↻ Nochmal von vorn</button>
+        <div class="card" role="button" tabindex="0" aria-label="Karte umdrehen">
+          <div class="card-inner">
+            <article class="face front">
+              <header class="band"><span data-c="head"></span><span class="serial"></span></header>
+              <div class="main">
+                <div class="seal" aria-hidden="true">★</div>
+                <p class="kicker" data-c="kicker"></p>
+                <h2 class="title" data-c="title"></h2>
+                <dl class="fields"></dl>
+                <p class="greeting" data-c="greeting"></p>
+                <div class="sign"></div>
+              </div>
+              <div class="perf" aria-hidden="true"></div>
+              <footer class="stub">
+                <div class="code" aria-hidden="true"></div>
+                <p class="serial-small"></p>
+                <p class="stub-note" data-c="stub"></p>
+              </footer>
+            </article>
+            <article class="face back">
+              <header class="band"><span>BEDINGUNGEN</span><span class="serial"></span></header>
+              <p class="fine" data-c="fine"></p>
+            </article>
+          </div>
+          <p class="flip-hint">Rückseite ↻</p>
+        </div>
+        <div class="actions">
+          <a class="btn wa" target="_blank" rel="noopener">📅 Ich hab mir einen Tag ausgesucht</a>
+          <a class="sms">oder per SMS</a>
+          <button class="btn btn-2 again">↻ Nochmal von vorn</button>
+        </div>
         <canvas class="layer" hidden></canvas>
         <button class="btn tidy" hidden>🧹 Aufräumen</button>
       </section>
