@@ -6,6 +6,9 @@
   cursor: pointer;
   animation: float 4.5s ease-in-out infinite;
   outline: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .card-inner {

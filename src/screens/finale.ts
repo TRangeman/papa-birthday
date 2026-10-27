@@ -540,7 +540,7 @@ export function finale(app: App): Scene {
     draw(now, t);
     frames++;
 
-    if (!tidyAt && tidyBtn.hidden && t > LAUNCH_MS * 2 && now - lastCover > 500) {
+    if (!tidyAt && !doneAt && tidyBtn.hidden && t > LAUNCH_MS * 2 && now - lastCover > 500) {
       lastCover = now;
       const free = freeShare();
       if (!freeAtLanding) freeAtLanding = free;
@@ -560,6 +560,7 @@ export function finale(app: App): Scene {
   function finish() {
     stop();
     canvas.hidden = true;
+    tidyBtn.hidden = true;
     el.classList.remove('covered');
     app.next();
   }
