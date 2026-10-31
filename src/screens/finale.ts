@@ -540,7 +540,9 @@ export function finale(app: App): Scene {
     draw(now, t);
     frames++;
 
-    if (!tidyAt && !doneAt && tidyBtn.hidden && t > LAUNCH_MS * 2 && now - lastCover > 500) {
+    // Keine mehr draußen: Button sofort weg und nicht wieder einblenden (auch während der letzte noch fällt)
+    if (landed && !items.length) tidyBtn.hidden = true;
+    if (!tidyAt && !doneAt && items.length && tidyBtn.hidden && t > LAUNCH_MS * 2 && now - lastCover > 500) {
       lastCover = now;
       const free = freeShare();
       if (!freeAtLanding) freeAtLanding = free;
@@ -584,8 +586,13 @@ export function finale(app: App): Scene {
     finger = undefined;
   }
 
+  // Immer nur ein Finger: ein neues Antippen ersetzt den alten Körper, sonst bliebe er unsichtbar
+  // in der Welt liegen und könnte Objekte (z. B. vor dem Korb) blockieren
+  let fingerId = -1;
   canvas.addEventListener('pointerdown', (e) => {
     if (!engine || tidyAt || doneAt) return;
+    release();
+    fingerId = e.pointerId;
     try {
       canvas.setPointerCapture(e.pointerId);
     } catch {}
@@ -595,15 +602,18 @@ export function finale(app: App): Scene {
     wake(p);
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (!engine || !finger) return;
+    if (!engine || !finger || e.pointerId !== fingerId) return;
     const p = at(e);
     // Mit updateVelocity bekommt der Finger eine Geschwindigkeit und gibt beim Anstoßen Schwung mit
     // (Matter.js kann das, die Typen kennen den dritten Parameter nicht)
     (Body.setPosition as (body: Matter.Body, position: Matter.Vector, updateVelocity: boolean) => void)(finger, p, true);
     wake(p);
   });
-  canvas.addEventListener('pointerup', release);
-  canvas.addEventListener('pointercancel', release);
+  const lift = (e: PointerEvent) => {
+    if (e.pointerId === fingerId) release();
+  };
+  canvas.addEventListener('pointerup', lift);
+  canvas.addEventListener('pointercancel', lift);
 
   tidyBtn.onclick = () => {
     if (!engine || tidyAt) return;
