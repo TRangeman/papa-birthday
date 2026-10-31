@@ -2,6 +2,7 @@
 export interface Content {
   name: string;
   from: string;
+  cosign?: string; // weiterer Absender, unterschreibt in Handschrift neben der Unterschrift
   cake: { title: string };
   gen: {
     sec: number; // Dauer des Generators, unabhängig von der Songlänge

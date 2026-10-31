@@ -60,8 +60,17 @@ export function card(app: App): Scene {
     crop.style.setProperty('--ratio', String((bw * sigRatio) / bh));
     crop.append(img);
     sign.replaceChildren(crop);
+  } else if (src) {
+    sign.replaceChildren(Object.assign(new Image(), { src, alt: app.content.from }));
   } else {
-    sign.replaceChildren(src ? Object.assign(new Image(), { src, alt: app.content.from }) : `— ${app.content.from}`);
+    sign.replaceChildren(`— ${app.content.from}`);
+  }
+
+  // Weiterer Absender unterschreibt in Handschrift davor
+  const { cosign } = app.content;
+  if (cosign) {
+    if (src) sign.prepend(Object.assign(document.createElement('span'), { className: 'cosign', textContent: cosign }));
+    else sign.replaceChildren(`— ${cosign} & ${app.content.from}`);
   }
 
   // WhatsApp: Nummer (international, ohne +) oder wa.me-Link. Direkt über api.whatsapp.com,
